@@ -138,3 +138,4 @@ test/
 logs/
 preprocessing/original
 preprocessing/coco_format
+kmeans-anchors-ratios/annotations
