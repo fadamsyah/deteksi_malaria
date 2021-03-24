@@ -93,11 +93,21 @@ class CocoAlbumentationsDataset(CocoDataset):
         annot = self.load_annotations(idx)
         
         if self.transform:
-            category_ids = [ann[-1] for ann in annot]
-            temp = self.transform(image=img, bboxes=annot[:, :4],
-                                  category_ids=category_ids)
+            # The transformed data should have at least 1 bounding box
+            while True:
+                category_ids = [ann[-1] for ann in annot]
+                temp = self.transform(image=img, bboxes=annot[:, :4],
+                                      category_ids=category_ids)
+                if len(temp['bboxes']) > 0:
+                    break
+            
+            # Get the transformed image
             img = temp['image']
+            
+            # Get the transformed annotations
+            annot = np.empty((len(temp['bboxes']), 5))
             annot[:, :4] = temp['bboxes']
+            annot[:, 4] = temp['category_ids']
         
         # transform from [x, y, w, h] to [x1, y1, x2, y2]
         annot[:, 2] = annot[:, 0] + annot[:, 2]
