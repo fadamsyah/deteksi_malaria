@@ -130,5 +130,11 @@ dmypy.json
 .idea/
 weights/
 
+################################################################################
+# TAMBAHAN
+datasets/
+*.pth
+test/
+logs/
 preprocessing/original
 preprocessing/coco_format
