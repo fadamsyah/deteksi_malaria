@@ -18,7 +18,7 @@ import torch
 import yaml
 from tqdm import tqdm
 from pycocotools.coco import COCO
-from pycocotools.cocoeval import COCOeval
+from utils.utils import CustomCOCOeval
 
 from backbone import EfficientDetBackbone
 from efficientdet.utils import BBoxTransform, ClipBoxes
@@ -28,6 +28,8 @@ ap = argparse.ArgumentParser()
 ap.add_argument('-p', '--project', type=str, default='coco', help='project file that contains parameters')
 ap.add_argument('-c', '--compound_coef', type=int, default=0, help='coefficients of efficientdet')
 ap.add_argument('-w', '--weights', type=str, default=None, help='/path/to/weights')
+ap.add_argument('--set_name', type=str, default='val_set', help='set name')
+ap.add_argument('--on_every_class', type=boolean_string, default=False, help='evaluate AP & AR for every class')
 ap.add_argument('--nms_threshold', type=float, default=0.5, help='nms threshold, don\'t change it if not for testing purposes')
 ap.add_argument('--cuda', type=boolean_string, default=True)
 ap.add_argument('--device', type=int, default=0)
@@ -122,21 +124,32 @@ def evaluate_coco(img_path, set_name, image_ids, coco, model, threshold=0.05):
     json.dump(results, open(filepath, 'w'), indent=4)
 
 
-def _eval(coco_gt, image_ids, pred_json_path):
+def _eval(coco_gt, image_ids, pred_json_path, on_every_class):
     # load results in COCO evaluation tool
     coco_pred = coco_gt.loadRes(pred_json_path)
 
     # run COCO evaluation
     print('BBox')
-    coco_eval = COCOeval(coco_gt, coco_pred, 'bbox')
+    print('Evaluation on all classes as a whole')
+    coco_eval = CustomCOCOeval(coco_gt, coco_pred, 'bbox')
     coco_eval.params.imgIds = image_ids
     coco_eval.evaluate()
     coco_eval.accumulate()
     coco_eval.summarize()
+    
+    if on_every_class:
+        for i in range(len(obj_list)):
+            # Index starts from 1
+            print('-------------------------------------')
+            print(f'Evaluation on {obj_list[i]} class')
+            coco_eval.params.catIds = [i+1]
+            coco_eval.evaluate()
+            coco_eval.accumulate()
+            coco_eval.summarize()
 
 
 if __name__ == '__main__':
-    SET_NAME = params['val_set']
+    SET_NAME = params[args.set_name]
     VAL_GT = f'datasets/{params["project_name"]}/annotations/instances_{SET_NAME}.json'
     VAL_IMGS = f'datasets/{params["project_name"]}/{SET_NAME}/'
     MAX_IMAGES = 10000
@@ -158,4 +171,4 @@ if __name__ == '__main__':
 
         evaluate_coco(VAL_IMGS, SET_NAME, image_ids, coco_gt, model)
 
-    _eval(coco_gt, image_ids, f'{SET_NAME}_bbox_results.json')
+    _eval(coco_gt, image_ids, f'{SET_NAME}_bbox_results.json', args.on_every_class)
