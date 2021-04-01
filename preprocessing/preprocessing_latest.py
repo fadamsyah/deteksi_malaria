@@ -2,16 +2,45 @@ import argparse
 import json
 import os
 
+'''
+    FITUR:
+        1) Neglect RBCs
+        2) Neglect difficult class
+        3) Neglect gambar yang hanya mengandung trophozoite saja di Training set
+'''
+
+# TRAINING SET
+# - leukocyte         103
+# - trophozoite      1473
+# - schizont          179
+# - ring              353
+# - gametocyte        144
+# - difficult         441
+
+# VALIDATION/TEST SET
+# 'leukocyte': 0,
+# 'trophozoite': 111,
+# 'schizont': 11,
+# 'ring': 169,
+# 'gametocyte': 12,
+# 'difficult': 5
+
+# Karena kelas difficult itu ga jelas dan banyak di training set tapi sedikit di validation set (cuman 5)
+# maka gambar yang hanya mengandung kelas difficult bisa dibuang.
+
+# UNTUK DI-TRAINING SET
+# Karena kelasnya ini *heavily imbalance* di **Trophozoite**, maka gambar yang hanya mengandung tropozoit saja bisa dibuang.
+
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument('--path', type=str, default='original/training.json')
 parser.add_argument('--saved_path', type=str, default='coco_format/instances_train.json')
+parser.add_argument('--ignore_trophozoite', type=str, default='true')
 args = parser.parse_args()
 
 wh_to_rc = {'width': 'c',
             'height': 'r'}
 
 class_to_id = {
-    # 'red blood cell': 1,
     'leukocyte': 1,
     'trophozoite': 2,
     'schizont': 3,
@@ -43,12 +72,20 @@ def preprocessing(name, saved_path_json, wh_to_rc=wh_to_rc,
 
     for data in dataset:
         contain_class = False
+        contain_difficult = False
+        only_trophozoite = True
         
         # Get the annotations
+        annots = []
         for annot in data['objects']:
             # Check whether the class is inside the classes_list or not
             if annot['category'] not in classes_list:
                 continue
+            if annot['category'] == 'difficult':
+                contain_difficult = True
+                break
+            if annot['category'] != 'trophozoite':
+                only_trophozoite = False
             
             # If the image contain at least one annotation
             contain_class = True
@@ -60,7 +97,7 @@ def preprocessing(name, saved_path_json, wh_to_rc=wh_to_rc,
             w = bb['maximum'][wh_to_rc['width']] - bb['minimum'][wh_to_rc['width']]
             h = bb['maximum'][wh_to_rc['height']] - bb['minimum'][wh_to_rc['height']]
 
-            annotations.append({
+            annots.append({
                 "id": annot_id,
                 "bbox": [x, y, w, h],
                 "image_id": image_id,
@@ -75,7 +112,11 @@ def preprocessing(name, saved_path_json, wh_to_rc=wh_to_rc,
 
         # If the image does not contain any annotation,
         # just neglect the image
-        if not contain_class: continue
+        if (not contain_class) or contain_difficult or (only_trophozoite and (args.ignore_trophozoite.lower()=='true')):
+            continue
+        
+        # Get the annotations
+        annotations.extend(annots)
         
         # Get the image description
         image = data['image']

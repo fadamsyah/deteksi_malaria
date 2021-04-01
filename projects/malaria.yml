@@ -14,8 +14,8 @@ anchors_ratios: '[(0.9, 1.1), (1.0, 1.0), (1.1, 0.9)]'
 # must match your dataset's category_id.
 # category_id is one_indexed,
 # for example, index of 'fasciola' here is 0, while category_id of is 1
-obj_list: ['red blood cell', 'leukocyte', 'trophozoite',
-           'schizont', 'ring', 'gametocyte','difficult']
+obj_list: ['leukocyte', 'trophozoite',
+           'schizont', 'ring', 'gametocyte']
 
 # Augmentation list. Here, we use the Albumentations library
 # IMPORTANT: You MUST add A.Normalize(...) in the list.
