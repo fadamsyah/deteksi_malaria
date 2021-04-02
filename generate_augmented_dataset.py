@@ -123,7 +123,10 @@ def generate_augmented_images(dataframe, dataset, target_class,
                 for ann in annot:
                     if int(ann[-1]) == class_to_cat_id[target_class] - 1:
                         count_cat_target = count_cat_target + 1
-                    aug_annot.append([ann[0], ann[1], ann[2], ann[3],
+                    aug_annot.append([math.ceil(ann[0]),
+                                      math.ceil(ann[1]),
+                                      math.ceil(ann[2]),
+                                      math.ceil(ann[3]),
                                       cat_id_to_class[int(ann[-1] + 1)]])
 
                 if num_cat_target == count_cat_target:
