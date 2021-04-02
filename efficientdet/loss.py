@@ -29,6 +29,7 @@ class FocalLoss(nn.Module):
         super(FocalLoss, self).__init__()
 
     def forward(self, classifications, regressions, anchors, annotations, **kwargs):
+        print(annotations
         alpha = 0.25
         gamma = 2.0
         batch_size = classifications.shape[0]
