@@ -88,9 +88,34 @@ class CocoWithoutResizer(CocoAlbumentationsDataset):
         
         return sample
     
+    def load_annotations(self, image_index):
+        # get ground truth annotations
+        annotations_ids = self.coco.getAnnIds(imgIds=self.image_ids[image_index], iscrowd=False)
+        annotations = np.zeros((0, 5))
+
+        # some images appear to miss annotations
+        if len(annotations_ids) == 0:
+            return annotations
+
+        # parse annotations
+        coco_annotations = self.coco.loadAnns(annotations_ids)
+        for idx, a in enumerate(coco_annotations):
+
+            # some annotations have basically no width / height, skip them
+            if a['bbox'][2] < 1 or a['bbox'][3] < 1:
+                continue
+
+            annotation = np.zeros((1, 5))
+            annotation[0, :4] = a['bbox']
+            annotation[0, 4] = a['category_id'] - 1
+            annotations = np.append(annotations, annotation, axis=0)
+
+        return annotations
+    
 def generate_augmented_images(dataframe, dataset, target_class,
                               avoided_classes, duplication, num_classes,
-                              saved_path, start_from, annotations):
+                              saved_path, start_from, annotations,
+                              dataset_ori, pct=1.0):
     
     # Generate the candidate row
     rows = []
@@ -105,6 +130,7 @@ def generate_augmented_images(dataframe, dataset, target_class,
         if contain_avoided_class: continue
             
         rows.append(list(row))
+    rows = rows[:math.ceil(pct * len(rows))]
     
     aug_annots = deepcopy(annotations)
     aug_img_idx = start_from
@@ -113,13 +139,31 @@ def generate_augmented_images(dataframe, dataset, target_class,
             num_cat_target = row[class_to_cat_id[target_class] - 1]
             img_id = row[-1]
 
+            iteration = 0
+            max_iteration = 15
             while True:
-                sample = training_set[img_id]
+                #### TYPE I ####
+                ## Supaya loop nya ngga infinity kalau ngga ada yang sesuai
+                ## Maka kalau iterasi melebihi max_iteration (10), maka
+                ## kita ambil dari original data
+                # if iteration >= max_iteration:
+                #     sample = dataset_ori[img_id]
+                # else:
+                #     sample = dataset[img_id]
+                # iteration = iteration + 1
+                
+                #### TYPE II ###               
+                sample = dataset[img_id]
                 img = sample['img']
                 annot = sample['annot']
 
                 aug_annot = []
                 count_cat_target = 0
+                
+                if iteration >= max_iteration:
+                    break
+                iteration = iteration + 1
+                
                 for ann in annot:
                     if int(ann[-1]) == class_to_cat_id[target_class] - 1:
                         count_cat_target = count_cat_target + 1
@@ -131,6 +175,10 @@ def generate_augmented_images(dataframe, dataset, target_class,
 
                 if num_cat_target == count_cat_target:
                     break
+            
+            # Kalau iterasi terlalu lama, yaudah continue/skip aja
+            if iteration >= max_iteration:
+                continue
             
             # Update the num_classes
             for ann in annot:
@@ -145,24 +193,17 @@ def generate_augmented_images(dataframe, dataset, target_class,
                     break
                 aug_img_idx = aug_img_idx + 1
 
-            # cv2.imwrite(img_path, cv2.cvtColor(img, cv2.COLOR_BGR2RGB) * 255.)
-            aug_annots.append({img_name: aug_annot})
+            cv2.imwrite(img_path, cv2.cvtColor(img, cv2.COLOR_BGR2RGB) * 255.)
+            aug_annots.append({img_name: {'description': {'height': img.shape[0],
+                                                          'width': img.shape[1]},
+                                          'annotations': aug_annot}})
             aug_img_idx = aug_img_idx + 1
     
     return rows, num_classes, aug_annots
     
 # Cari jumlah class pada tiap image
 training_set = CocoWithoutResizer(root_dir=os.path.join('datasets', 'malaria'), set='train',
-                                  transform=A.OneOf([A.RandomCrop(1200, 1200, p=0.5),
-                                                     A.RandomCrop(1100, 1100, p=0.5),
-                                                     A.RandomCrop(1000, 1000, p=1.0),
-                                                     A.RandomCrop(950, 950, p=0.5),
-                                                     A.RandomCrop(900, 900, p=1.0),
-                                                     A.RandomCrop(850, 850, p=0.5),
-                                                     A.RandomCrop(800, 800, p=1.0),
-                                                     A.RandomCrop(750, 750, p=0.5),
-                                                     A.RandomCrop(700, 700, p=1.0)],
-                                                    p=1.0)
+                                  transform=None
                                  )
 
 img_idx = []
@@ -181,7 +222,6 @@ for idx in tqdm(range(len(training_set))):
     bbs = sample['annot']
     
     for bb in bbs:
-        print(int(bb[-1])+1)
         category = cat_id_to_class[int(bb[-1])+1]
         num_per_class[category] = num_per_class[category] + 1
     
@@ -201,15 +241,40 @@ num_classes = count('datasets/malaria/annotations/instances_train.json', False)
 
 # Generate augmented dataset
 aug_annots = []
-# FINE TUNING
-_, num_classes, aug_annots = generate_augmented_images(df, training_set, 'leukocyte', ['trophozoite'], 12,
-                                                       num_classes, 'datasets/malaria/augmentation', 0, aug_annots)
-_, num_classes, aug_annots = generate_augmented_images(df, training_set, 'leukocyte', ['trophozoite', 'ring'], 1,
-                                                       num_classes, 'datasets/malaria/augmentation', 0, aug_annots)
+training_set_ori = deepcopy(training_set)
+training_set = CocoWithoutResizer(root_dir=os.path.join('datasets', 'malaria'), set='train',
+                                  transform=A.Compose([A.OneOf([A.RandomCrop(1200, 1200, p=1.0),
+                                                              A.RandomCrop(1100, 1100, p=0.5),
+                                                              A.RandomCrop(1000, 1000, p=1.0),
+                                                              A.RandomCrop(900, 900, p=0.5),
+                                                              A.RandomCrop(800, 800, p=1.0),
+                                                              A.RandomCrop(700, 700, p=0.5)],
+                                                             p=1.0)],
+                                                    bbox_params=A.BboxParams(format='coco',
+                                                                             label_fields=['category_ids'],
+                                                                             min_visibility=0.2),),
+                                 )
+
+##################################################################################################################
+##### IMPORTANT !!!!! #####
+# Ini FINE TUNING, perlu latihan dulu di google colab
+# Supaya jumlah class yang dihasilkan sesuai keinginan
+# Belum kebayang dibikin otomatisnya kaya gimana
+# Mungkin next-time kalau bener-bener serius mau bikin kodingan yang handle unbalanced dataset 
+##### IMPORTANT !!!!! #####
+##################################################################################################################
+_, num_classes, aug_annots = generate_augmented_images(df, training_set, 'leukocyte', ['trophozoite'], 15,
+                                                       num_classes, 'datasets/malaria/augmentation', 0, aug_annots,
+                                                       training_set_ori)
 _, num_classes, aug_annots = generate_augmented_images(df, training_set, 'schizont', ['trophozoite'], 3,
-                                                       num_classes, 'datasets/malaria/augmentation', 0, aug_annots)
+                                                       num_classes, 'datasets/malaria/augmentation', 0, aug_annots,
+                                                       training_set_ori)
 _, num_classes, aug_annots = generate_augmented_images(df, training_set, 'gametocyte', ['trophozoite'], 5,
-                                                       num_classes, 'datasets/malaria/augmentation', 0, aug_annots)
+                                                       num_classes, 'datasets/malaria/augmentation', 0, aug_annots,
+                                                       training_set_ori)
+_, num_classes, aug_annots = generate_augmented_images(df, training_set, 'ring', ['trophozoite'], 1,
+                                                       num_classes, 'datasets/malaria/augmentation', 0, aug_annots,
+                                                       training_set_ori, 0.5)
 print("The distribution of the class", num_classes)
 
 # SAVE TO JSON FORMAT
