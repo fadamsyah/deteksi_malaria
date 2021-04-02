@@ -263,18 +263,18 @@ training_set = CocoWithoutResizer(root_dir=os.path.join('datasets', 'malaria'), 
 # Mungkin next-time kalau bener-bener serius mau bikin kodingan yang handle unbalanced dataset 
 ##### IMPORTANT !!!!! #####
 ##################################################################################################################
-_, num_classes, aug_annots = generate_augmented_images(df, training_set, 'leukocyte', ['trophozoite'], 15,
+_, num_classes, aug_annots = generate_augmented_images(df, training_set, 'leukocyte', ['trophozoite'], 13,
                                                        num_classes, 'datasets/malaria/augmentation', 0, aug_annots,
                                                        training_set_ori)
 _, num_classes, aug_annots = generate_augmented_images(df, training_set, 'schizont', ['trophozoite'], 3,
                                                        num_classes, 'datasets/malaria/augmentation', 0, aug_annots,
-                                                       training_set_ori)
+                                                       training_set_ori, 0.8)
 _, num_classes, aug_annots = generate_augmented_images(df, training_set, 'gametocyte', ['trophozoite'], 5,
                                                        num_classes, 'datasets/malaria/augmentation', 0, aug_annots,
                                                        training_set_ori)
 _, num_classes, aug_annots = generate_augmented_images(df, training_set, 'ring', ['trophozoite'], 1,
                                                        num_classes, 'datasets/malaria/augmentation', 0, aug_annots,
-                                                       training_set_ori, 0.5)
+                                                       training_set_ori, 0.2)
 print("The distribution of the class", num_classes)
 
 # SAVE TO JSON FORMAT
