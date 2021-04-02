@@ -110,8 +110,8 @@ class CocoAlbumentationsDataset(CocoDataset):
             annot[:, 4] = temp['category_ids']
         
         # transform from [x, y, w, h] to [x1, y1, x2, y2]
-        annot[:, 2] = annot[:, 0] + annot[:, 2] + 1200
-        annot[:, 3] = annot[:, 1] + annot[:, 3] + 1200
+        annot[:, 2] = annot[:, 0] + annot[:, 2] + 2000
+        annot[:, 3] = annot[:, 1] + annot[:, 3] + 2000
         
         sample = {'img': img, 'annot': annot}
         
