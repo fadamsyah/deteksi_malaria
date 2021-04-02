@@ -181,6 +181,7 @@ for idx in tqdm(range(len(training_set))):
     bbs = sample['annot']
     
     for bb in bbs:
+        print(int(bb[-1])+1)
         category = cat_id_to_class[int(bb[-1])+1]
         num_per_class[category] = num_per_class[category] + 1
     
