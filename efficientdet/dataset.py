@@ -77,8 +77,8 @@ class CocoDataset(Dataset):
             annotations = np.append(annotations, annotation, axis=0)
 
         # transform from [x, y, w, h] to [x1, y1, x2, y2]
-        annotations[:, 2] = annotations[:, 0] + annotations[:, 2] + 1200
-        annotations[:, 3] = annotations[:, 1] + annotations[:, 3] + 1200
+        annotations[:, 2] = annotations[:, 0] + annotations[:, 2]
+        annotations[:, 3] = annotations[:, 1] + annotations[:, 3]
 
         return annotations
 
@@ -110,8 +110,8 @@ class CocoAlbumentationsDataset(CocoDataset):
             annot[:, 4] = temp['category_ids']
         
         # transform from [x, y, w, h] to [x1, y1, x2, y2]
-        annot[:, 2] = annot[:, 0] + annot[:, 2]
-        annot[:, 3] = annot[:, 1] + annot[:, 3]
+        annot[:, 2] = annot[:, 0] + annot[:, 2] + 1200
+        annot[:, 3] = annot[:, 1] + annot[:, 3] + 1200
         
         sample = {'img': img, 'annot': annot}
         
