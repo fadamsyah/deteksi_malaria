@@ -162,7 +162,7 @@ training_set = CocoWithoutResizer(root_dir=os.path.join('datasets', 'malaria'), 
                                                      A.RandomCrop(800, 800, p=1.0),
                                                      A.RandomCrop(750, 750, p=0.5),
                                                      A.RandomCrop(700, 700, p=1.0)],
-                                                    always_apply=True)
+                                                    p=1.0)
                                  )
 
 img_idx = []
