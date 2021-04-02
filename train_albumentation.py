@@ -112,7 +112,8 @@ def train(opt):
     training_set = CocoAlbumentationsDataset(root_dir=os.path.join(opt.data_path, params.project_name), set=params.train_set,
                                              transform=A.Compose([eval(params.augmentation[i]) for i in range(len(params.augmentation))],
                                                                  bbox_params=A.BboxParams(format='coco',
-                                                                                          label_fields=['category_ids']),),
+                                                                                          label_fields=['category_ids'],
+                                                                                          min_visibility=0.2),),
                                              img_size=input_sizes[opt.compound_coef])
     
     training_generator = DataLoader(training_set, **training_params)
