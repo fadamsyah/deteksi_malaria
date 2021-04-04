@@ -83,9 +83,10 @@ class CocoDataset(Dataset):
         return annotations
 
 class CocoAlbumentationsDataset(CocoDataset):
-    def __init__(self, root_dir, set='train2017', transform=None, img_size=512):
+    def __init__(self, root_dir, set='train2017', transform=None, img_size=512, resize=True):
         super().__init__(root_dir, set, transform)
         self.resizer = Resizer(img_size)
+        self.resize = resize
 
     def __getitem__(self, idx):
 
@@ -115,7 +116,8 @@ class CocoAlbumentationsDataset(CocoDataset):
         
         sample = {'img': img, 'annot': annot}
         
-        sample = self.resizer(sample)
+        if self.resize:
+            sample = self.resizer(sample)
         
         return sample
 
