@@ -117,10 +117,10 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.join(os.getcwd(), 'deteksi_malaria'))
     from detector.detector import DetectionModule
     
+     # Panggil model
     detector = DetectionModule(opt.compound_coef, obj_list, opt.weights_path,
                                opt.use_cuda, anchors_ratios, anchors_scales)
     
-    # Panggil model
     # Outputnya adalah dictionary 
     output = detector(opt.img_path, opt.use_url,
                       opt.threshold, opt.iou_threshold)
